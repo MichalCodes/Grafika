@@ -8,7 +8,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 uMVP;
-uniform float w = 1.0; // nová uniform
+uniform float w = 1.0;
 
 out vec3 worldPos;
 out vec3 worldNormal;
@@ -21,5 +21,5 @@ void main() {
     
     TexCoord = aTex; 
     
-    gl_Position = projection * view * vec4(worldPos, w); // použijeme uniform
+    gl_Position = projection * view * vec4(worldPos, w);
 }

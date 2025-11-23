@@ -34,33 +34,18 @@ public:
 private:
     vector<vector<shared_ptr<DrawableObject>>> scenes;
     int activeSceneIndex;
-    std::vector<Light> pointLights;
-    shared_ptr<DrawableObject> cubeInScene6;
     shared_ptr<DrawableObject> formulaInScene6;
+    shared_ptr<DrawableObject> cubeInScene6;
     shared_ptr<DrawableObject> selectedObject;
     bool isObjectSelected = false;
     shared_ptr<DrawableObject> solarSun;
     shared_ptr<DrawableObject> solarEarth;
     shared_ptr<DrawableObject> solarMoon;
-    shared_ptr<DrawableObject> triangleObject;
     shared_ptr<DrawableObject> suziPhongNorm;
     shared_ptr<Texture> planeTexture;
     shared_ptr<DrawableObject> skyboxObject;
-    struct Flashlight {
-        glm::vec3 position;
-        glm::vec3 direction;
-        float cutoff = glm::cos(glm::radians(12.5f));
-        float outerCutoff = glm::cos(glm::radians(17.5f));
-    } flashlight;
-    struct Firefly {
-        glm::vec3 position;
-        glm::vec3 color;
-    };
-    vector<Firefly> fireflies;
-    shared_ptr<ProgramShader> forestShader;
     std::vector<std::shared_ptr<DrawableObject>> lightMarkers;
     std::vector<glm::vec3> lightBasePositions;
-    shared_ptr<ProgramShader> skyboxShader;
     shared_ptr<DrawableObject> solarMars;
     shared_ptr<DrawableObject> solarJupiter;
     shared_ptr<DrawableObject> solarSaturn;
@@ -84,6 +69,15 @@ private:
         ~MoleCube() = default;
     };
 
+    struct FormulaObject {
+        shared_ptr<DrawableObject> obj;
+        glm::vec3 startPos;
+        glm::vec3 endPos;
+        float currentX;
+        float speed = 8.0f;
+        bool isActive = false;
+    };
+    FormulaObject formula;
     vector<MoleCube> moleCubes;
     float moleTimer = 0.0f;
     float lastUpdateTime = 0.0f;

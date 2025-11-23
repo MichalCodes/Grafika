@@ -1,9 +1,6 @@
 #include "Scene.h"
 #include "../Models/sphere.h"
 #include "../Models/plain.h"
-#include "../Models/tree.h"
-#include "../Models/bushes.h"
-#include "../Models/suzi_flat.h"
 #include "../Models/suzi_smooth.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -89,6 +86,7 @@ void Scene::handleMouseClick(float mouseX, float mouseY, const glm::mat4& view, 
     glEnable(GL_DEPTH_TEST); 
     setSelectedObject(pickedID);
 }
+
 void Scene::setSelectedObject(unsigned int objectID) {
     if (objectID == 0) {
         selectedObject = nullptr;
@@ -111,18 +109,32 @@ void Scene::setSelectedObject(unsigned int objectID) {
             cout << "Plain / Grass" << endl;
         } 
         else if (activeSceneIndex == 2) {
-            for (auto &m : moleCubes) {
-                if (m.obj->getID() == objectID) {
-                    if (!m.isHit && m.emerging) {
-                        currentScore++;
-                        cout << "SCORE: " << currentScore << endl;
+            if (objectID == formula.obj->getID()) {
+                if (formula.isActive) {
+                    currentScore += 2;
+                    cout << "SCORE: " << currentScore << endl;
+                    cout << "Formula HIT! (+2 Points)" << endl;
+                    
+                    formula.isActive = false; 
+                    formula.obj->getTransform()->clear();
+                    formula.obj->getTransform()->add(make_shared<Translate>(formula.startPos));
+                    formula.obj->getTransform()->add(make_shared<Rotate>(glm::radians(-90.0f), glm::vec3(0, 1, 0)));
+                    formula.obj->getTransform()->add(make_shared<Scale>(glm::vec3(0.1f)));
+                }
+            } else { 
+                for (auto &m : moleCubes) {
+                    if (m.obj->getID() == objectID) {
+                        if (!m.isHit && m.emerging) {
+                            currentScore++;
+                            cout << "SCORE: " << currentScore << endl;
+                        }
+                        m.isHit = true;
+                        m.obj->setColor(glm::vec3(1.0f, 1.0f, 0.0f));
+                        m.emerging = false;
+                        m.stayTimer = 0.0f;
+                        cout << "MoleCube HIT! ID: " << objectID << endl;
+                        break;
                     }
-                    m.isHit = true;
-                    m.obj->setColor(glm::vec3(1.0f, 1.0f, 0.0f));
-                    m.emerging = false;
-                    m.stayTimer = 0.0f;
-                    cout << "MoleCube HIT! ID: " << objectID << endl;
-                    break;
                 }
             }
         }
@@ -186,6 +198,44 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
             t->add(make_shared<Translate>(glm::vec3(m.baseX, m.currentY, m.baseZ)));
             t->add(make_shared<Scale>(glm::vec3(0.5f)));
             m.obj->setTransformation(t);
+        }
+        static float formulaSpawnTimer = 0.0f;
+        formulaSpawnTimer += deltaTime;
+
+        if (!formula.isActive && formulaSpawnTimer > 7.0f) {
+            formula.isActive = true;
+            formula.currentX = formula.startPos.x; 
+            formulaSpawnTimer = 0.0f; 
+        }
+
+        if (formula.isActive) {
+            formula.currentX += formula.speed * deltaTime;
+            const float visibleHeight = 0.5f;
+            const float submergedDepth = -1.0f;
+            const float plainStart = formula.startPos.x;
+            const float plainEnd = formula.endPos.x;
+            const float plainCenter = (plainStart + plainEnd) / 2.0f;
+            
+            float yPos;
+
+            if (formula.currentX < plainCenter) {
+                float progress = (formula.currentX - plainStart) / (plainCenter - plainStart);
+                yPos = submergedDepth + progress * (visibleHeight - submergedDepth);
+            } else {
+                float progress = (formula.currentX - plainCenter) / (plainEnd - plainCenter);
+                yPos = visibleHeight - progress * (visibleHeight - submergedDepth);
+            }
+            yPos = glm::max(submergedDepth, yPos); 
+            glm::vec3 currentPos(formula.currentX, yPos, formula.startPos.z);
+            auto t = make_shared<Transformation>();
+            t->add(make_shared<Translate>(currentPos));
+            t->add(make_shared<Rotate>(glm::radians(180.0f), glm::vec3(0, 1, 0))); 
+            t->add(make_shared<Scale>(glm::vec3(0.1f)));
+            formula.obj->setTransformation(t);
+
+            if (formula.currentX >= formula.endPos.x) {
+                formula.isActive = false;
+            }
         }
     } else if (activeSceneIndex == 3) {
         if (!solarEarth || !solarMoon || !solarMars || !solarJupiter ||!solarSaturn || !solarUranus || !solarNeptune || !solarSun) return;
@@ -366,6 +416,28 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene3(shared_ptr<ProgramSha
         m.isHit = false;
         moleCubes.push_back(m);
     }
+    auto formulaModel = Model::loadOBJ("Models/formula1.obj"); 
+    
+    const float trackZ = 5.0f;
+    
+    glm::vec3 formulaStartPos(-8.0f, -1.0f, trackZ); 
+
+    auto tFormula = make_shared<Transformation>();
+    tFormula->add(make_shared<Translate>(formulaStartPos));
+    tFormula->add(make_shared<Rotate>(glm::radians(90.0f), glm::vec3(0, 1, 0))); 
+    tFormula->add(make_shared<Scale>(glm::vec3(0.1f)));
+    
+    auto formulaObj = make_shared<DrawableObject>(formulaModel, shader, tFormula);
+    formulaObj->setColor(glm::vec3(1.0f, 0.0f, 0.0f)); 
+    formulaObj->setID(11); 
+
+    scene3.push_back(formulaObj);
+
+    formula.obj = formulaObj;
+    formula.startPos = formulaStartPos;
+    formula.endPos = glm::vec3(8.0f, -1.0f, trackZ);
+    formula.currentX = formulaStartPos.x;
+    formula.isActive = false; 
     return scene3;
 }
 
@@ -393,7 +465,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene4(shared_ptr<ProgramSha
             float y  = sphere[i*6 + 1];
             float z  = sphere[i*6 + 2];
 
-            float v = acos(y) / M_PI; 
+            float v = acos(y) / M_PI;
             float u = 0.5f + atan2(z, x) / (2.0f * M_PI);
             
             u_coords[i] = u;
@@ -463,7 +535,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene4(shared_ptr<ProgramSha
 
     {
         auto tSun = make_shared<Transformation>();
-        tSun->add(make_shared<Scale>(glm::vec3(1.6f)));
+        tSun->add(make_shared<Scale>(glm::vec3(1.0f)));
 
         auto sunObj = make_shared<DrawableObject>(sphereModel, sunShader, tSun);
         auto sunTex = make_shared<Texture>("Textures/sun.jpg");

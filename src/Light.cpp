@@ -44,13 +44,11 @@ void Light::applyToShader(const std::shared_ptr<ProgramShader>& shader) const
     shader->use();
     shader->setUniform("light.color", color * intensity);
 
-    if (directional)
-    {
+    if (directional){
         shader->setUniform("light.isDirectional", 1);
         shader->setUniform("light.direction", direction);
     }
-    else
-    {
+    else{
         shader->setUniform("light.isDirectional", 0);
         shader->setUniform("light.position", position);
         shader->setUniform("light.constant", constant);
