@@ -19,4 +19,5 @@ private:
     double lastX = 500.0;
     double lastY = 400.0;
     bool firstMouse = true;
+    bool isCursorEnabled = false;
 };

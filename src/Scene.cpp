@@ -34,14 +34,11 @@ void Scene::draw(const glm::mat4& projection, const glm::mat4& view) const {
     for (const auto& obj : activeScene) {
         glm::mat4 model = obj->getTransform()->getMat();
         glm::mat4 mvp = projection * view * model;
-
         auto shader = obj->getShader();
         shader->use();
-
         if (activeSceneIndex == 0) shader->setUniform("w", 1.0f);
         else if (activeSceneIndex == 1) shader->setUniform("w", 300.0f);
         else shader->setUniform("w", 1.0f);
-
         shader->setMat4("model", model);
         shader->setMat4("view", view);
         shader->setMat4("projection", projection);
@@ -52,7 +49,24 @@ void Scene::draw(const glm::mat4& projection, const glm::mat4& view) const {
 void Scene::drawForPicking(const glm::mat4& projection, const glm::mat4& view) const {
     if (activeSceneIndex < 0 || activeSceneIndex >= (int)scenes.size()) return;
     const auto& activeScene = scenes[activeSceneIndex];
+    
     for (const auto& obj : activeScene) {
+        if (activeSceneIndex == 2) {
+            bool isMoleCube = false;
+            for (const auto& m : moleCubes) {
+                if (m.obj == obj) {
+                    isMoleCube = true;
+                    if (m.currentY < -0.8f) { 
+                        continue;
+                    }
+                    break;
+                }
+            }
+            if (obj->getID() == 1) {
+            } else if (!isMoleCube) {
+                 continue; 
+            }
+        }
         glm::mat4 model = obj->getTransform()->getMat();
         glm::mat4 mvp = projection * view * model;
         glStencilFunc(GL_ALWAYS, obj->getID(), 0xFF);
@@ -64,15 +78,15 @@ void Scene::handleMouseClick(float mouseX, float mouseY, const glm::mat4& view, 
     glEnable(GL_STENCIL_TEST);
     glStencilMask(0xFF);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST); 
     drawForPicking(projection, view);
     glFlush();
     glFinish();
-    glDisable(GL_DEPTH_TEST);
     glStencilMask(0x00);
     unsigned int pickedID;
     glReadPixels((int)mouseX, viewportHeight - (int)mouseY, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &pickedID);
     glDisable(GL_STENCIL_TEST);
+    glEnable(GL_DEPTH_TEST); 
     setSelectedObject(pickedID);
 }
 void Scene::setSelectedObject(unsigned int objectID) {
@@ -89,24 +103,92 @@ void Scene::setSelectedObject(unsigned int objectID) {
             break;
         }
     }
+
     if (foundObject) {
         if (foundObject == formulaInScene6) cout << "formula1" << endl;
         else if (foundObject == cubeInScene6) cout << "cube" << endl;
-        else cout << "Object ID: " << objectID << endl;
+        else if (objectID == 1 && activeSceneIndex == 2) {
+            cout << "Plain / Grass" << endl;
+        } 
+        else if (activeSceneIndex == 2) {
+            for (auto &m : moleCubes) {
+                if (m.obj->getID() == objectID) {
+                    if (!m.isHit && m.emerging) {
+                        currentScore++;
+                        cout << "SCORE: " << currentScore << endl;
+                    }
+                    m.isHit = true;
+                    m.obj->setColor(glm::vec3(1.0f, 1.0f, 0.0f));
+                    m.emerging = false;
+                    m.stayTimer = 0.0f;
+                    cout << "MoleCube HIT! ID: " << objectID << endl;
+                    break;
+                }
+            }
+        }
+        else {
+            cout << "Object ID: " << objectID << endl;
+        }
+        selectedObject = foundObject;
     } else {
         selectedObject = nullptr;
-        cout << "Object ID: " << objectID << endl;
+        cout << "Object ID: " << objectID << " (Not found in active scene objects list)" << endl;
     }
 }
 
 void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Camera> camera) {
+    float deltaTime = time - lastUpdateTime;
+    lastUpdateTime = time;
+    if (deltaTime < 0.0f || deltaTime > 1.0f) deltaTime = 0.016f;
+
     if (activeSceneIndex == 2) {
-        
-    }
-    else if (activeSceneIndex == 3) {
-        if (!solarEarth || !solarMoon || !solarMars || !solarJupiter ||
-        !solarSaturn || !solarUranus || !solarNeptune || !solarSun)
-        return;
+        if (moleCubes.empty()) return;
+
+        moleTimer += deltaTime;
+        static std::default_random_engine rng{std::random_device{}()};
+
+        if (moleTimer > 2.0f) {
+            moleTimer = 0.0f;
+            std::uniform_int_distribution<int> dist(0, static_cast<int>(moleCubes.size()) - 1);
+            int idx = dist(rng);
+            if (!moleCubes[idx].emerging && moleCubes[idx].currentY <= -0.9f) {
+                moleCubes[idx].emerging = true;
+                moleCubes[idx].stayTimer = 1.2f;
+            }
+        }
+
+        for (auto &m : moleCubes) {
+            if (m.emerging) {
+                m.currentY += m.speed * deltaTime;
+                if (m.currentY >= m.baseY) {
+                    m.currentY = m.baseY;
+                    m.stayTimer -= deltaTime;
+                    if (m.stayTimer <= 0.0f) {
+                        m.emerging = false;
+                    }
+                }
+            } else {
+                if (m.currentY > -1.0f) {
+                    m.currentY -= m.speed * deltaTime;
+                    
+                    if (m.currentY < -1.0f) {
+                        m.currentY = -1.0f;
+                        
+                        if (m.isHit) {
+                            m.isHit = false;
+                            m.obj->setColor(glm::vec3(1.0f, 0.2f, 0.2f));
+                        }
+                    }
+                }
+            }
+
+            auto t = make_shared<Transformation>();
+            t->add(make_shared<Translate>(glm::vec3(m.baseX, m.currentY, m.baseZ)));
+            t->add(make_shared<Scale>(glm::vec3(0.5f)));
+            m.obj->setTransformation(t);
+        }
+    } else if (activeSceneIndex == 3) {
+        if (!solarEarth || !solarMoon || !solarMars || !solarJupiter ||!solarSaturn || !solarUranus || !solarNeptune || !solarSun) return;
 
         {
             auto tSun = make_shared<Transformation>();
@@ -117,10 +199,10 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
 
         struct PlanetOrbit {
             shared_ptr<DrawableObject> planet;
-            float radius;   // oběh
-            float speed;    // rychlost oběhu
-            float size;     // měřítko
-            float spin;     // rychlost rotace kolem vlastní osy
+            float radius;
+            float speed;
+            float size;
+            float spin;
         };
 
         vector<PlanetOrbit> orbits = {
@@ -219,12 +301,15 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene2(shared_ptr<ProgramSha
 
 vector<shared_ptr<DrawableObject>> Scene::initializeScene3(shared_ptr<ProgramShader> shader) {
     vector<shared_ptr<DrawableObject>> scene3;
+    currentScore = 0;
     shader->use();
     shader->setUniform("lightPosition", glm::vec3(-3.0f, 6.0f, 3.0f));
+
     const int vertexCount = sizeof(plane) / sizeof(float) / 6;
     vector<float> data;
     data.reserve(vertexCount * 8);
 
+    const float tile = 6.0f;
     for (int i = 0; i < vertexCount; ++i) {
         float x = plane[i*6 + 0];
         float y = plane[i*6 + 1];
@@ -233,17 +318,10 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene3(shared_ptr<ProgramSha
         float ny = plane[i*6 + 4];
         float nz = plane[i*6 + 5];
 
-        float u = 1.5f + atan2(z, x) / (2.0f * M_PI);
-        float v = 1.5f - asin(y) / M_PI;
+        float u = (x + 5.0f) / 10.0f * tile;
+        float v = (z + 5.0f) / 10.0f * tile;
 
-        data.push_back(x);
-        data.push_back(y);
-        data.push_back(z);
-        data.push_back(nx);
-        data.push_back(ny);
-        data.push_back(nz);
-        data.push_back(u);
-        data.push_back(v);
+        data.insert(data.end(), {x, y, z, nx, ny, nz, u, v});
     }
 
     auto planeModel = make_shared<Model>(data.data(), vertexCount, true);
@@ -251,11 +329,43 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene3(shared_ptr<ProgramSha
     tplane->add(make_shared<Scale>(glm::vec3(10.0f, 1.0f, 10.0f)));
 
     auto planeObj = make_shared<DrawableObject>(planeModel, shader, tplane);
-    auto grassTex = make_shared<Texture>("Textures/grass.png");
-    planeObj->setTexture(grassTex);
-
+    planeObj->setTexture(make_shared<Texture>("Textures/grass.png"));
+    planeObj->setID(1);
     scene3.push_back(planeObj);
 
+    auto cubeModel = Model::loadOBJ("Models/cube.obj");
+
+    vector<glm::vec3> positions = {
+        {-3, 0, -3}, {0, 0, -3}, {3, 0, -3},
+        {-3, 0,  0}, {0, 0,  0}, {3, 0,  0},
+        {-3, 0,  3}, {0, 0,  3}, {3, 0,  3}
+    };
+
+    moleCubes.clear();
+    unsigned int cubeID = 2;
+    for (auto& pos : positions) {
+        auto t = make_shared<Transformation>();
+        t->add(make_shared<Translate>(glm::vec3(pos.x, -1.0f, pos.z)));
+        t->add(make_shared<Scale>(glm::vec3(0.5f)));
+
+        auto cube = make_shared<DrawableObject>(cubeModel, shader, t);
+        cube->setColor(glm::vec3(1.0f, 0.2f, 0.2f));
+        cube->setID(cubeID++);
+
+        scene3.push_back(cube);
+
+        MoleCube m;
+        m.obj = cube;
+        m.baseX = pos.x;
+        m.baseZ = pos.z;
+        m.baseY = 0.5f;
+        m.currentY = -1.0f;
+        m.emerging = false;
+        m.speed = 2.5f;
+        m.stayTimer = 0.0f;
+        m.isHit = false;
+        moleCubes.push_back(m);
+    }
     return scene3;
 }
 
@@ -388,7 +498,4 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene4(shared_ptr<ProgramSha
     solarNeptune = neptune;
 
     return scene4;
-}
-
-
-
+} // Scene.cpp

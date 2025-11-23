@@ -1,4 +1,3 @@
-#pragma once
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "EventController.h"
@@ -25,3 +24,4 @@ private:
     shared_ptr<Camera> camera;
     unique_ptr<EventController> inputController;
 };
+

@@ -9,6 +9,12 @@ using namespace std;
 Model::Model(const float* vertices, int count)
     : Model(vertices, count, false)
 {}
+Model::Model() {
+    VAO = 0;
+    VBO = 0;
+    hasTexcoords = false;
+    vertexCount = 0;
+}
 
 Model::Model(const float* vertices, int count, bool hasTex)
     : hasTexcoords(hasTex), vertexCount(count)

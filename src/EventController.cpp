@@ -16,14 +16,33 @@ void EventController::processInput(float deltaTime) {
     if(glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS) { sceneManager.setActiveScene(5);}
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
     if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && camera) camera->reset();
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+    static bool eKeyWasPressed = false;
+
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        if (!eKeyWasPressed) {
+            eKeyWasPressed = true;
+            isCursorEnabled = !isCursorEnabled;
+            
+            if (isCursorEnabled) {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            } else {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            }
+            
+            firstMouse = true; 
+        }
+    } else {
+        eKeyWasPressed = false;
+    }
+    
     float deltaForward = 0.0f;
     float deltaRight = 0.0f;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) deltaForward += 1.0f;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) deltaForward -= 1.0f;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) deltaRight += 1.0f;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) deltaRight -= 1.0f;
-    if (camera)camera->processKeyboard(deltaForward, deltaRight, deltaTime);
+    if (camera) camera->processKeyboard(deltaForward, deltaRight, deltaTime);
 }
 
 void EventController::processMouse() {

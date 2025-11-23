@@ -11,6 +11,7 @@ private:
     int vertexCount = 0;
 
 public:
+    Model(); 
     Model(const float* vertices, int count);
     Model(const float* vertices, int count, bool hasTex);
     ~Model();

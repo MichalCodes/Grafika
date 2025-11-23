@@ -12,7 +12,6 @@ public:
 
     void add(shared_ptr<TransformationComponent> component);
     void clear();
-
     void apply(glm::mat4& mat) const override;
     glm::mat4 getMat() const;
     const float* data() const;

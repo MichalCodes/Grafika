@@ -12,6 +12,7 @@
 #include "Camera.h"
 #include "Texture.h"
 #include "CustomTransform.hpp"
+#include <algorithm>
 using namespace std;
 class DrawableObject;
 class ProgramShader;
@@ -67,4 +68,24 @@ private:
     shared_ptr<DrawableObject> solarNeptune;
     shared_ptr<DrawableObject> solarMercury;
     shared_ptr<DrawableObject> solarVenus;
+
+    struct MoleCube {
+        shared_ptr<DrawableObject> obj;
+        float baseY;
+        float currentY;
+        float baseX;
+        float baseZ;
+        bool emerging;
+        float speed;
+        float stayTimer;
+        bool isHit = false;
+
+        MoleCube() = default;
+        ~MoleCube() = default;
+    };
+
+    vector<MoleCube> moleCubes;
+    float moleTimer = 0.0f;
+    float lastUpdateTime = 0.0f;
+    int currentScore = 0;
 };

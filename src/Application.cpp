@@ -36,25 +36,18 @@ Application::Application() {
     camera->front = glm::normalize(glm::vec3(0.5f, 0.2f, 0.5f) - camera->position);
     camera->updateCameraVectors();
     shader = make_shared<ProgramShader>(camera.get());
-    if (!shader->loadFromFiles("Shaders/shaderBasic.vert", "Shaders/shaderBasic.frag")) {
-        cerr << "Shader load failed!\n";
-        exit(EXIT_FAILURE);
-    }
+
     auto shaderLight = make_shared<ProgramShader>(camera.get());
     if (!shaderLight->loadFromFiles("Shaders/phong.vert", "Shaders/phong.frag")) { // nacitam phonga
         cerr << "Nepodařilo se načíst Phong shader!\n";
         exit(EXIT_FAILURE);
     }
     auto shaderSun = make_shared<ProgramShader>(camera.get());
-    if (!shaderSun->loadFromFiles("Shaders/sun.vert", "Shaders/sun.frag")) {
+    if (!shaderSun->loadFromFiles("Shaders/sun.vert", "Shaders/sun.frag")) { // slunce
         cerr << "Nepodařilo se načíst Sun shader!\n";
         exit(EXIT_FAILURE);
     }
-    auto dirLightshader = make_shared<ProgramShader>(camera.get());
-    if (!dirLightshader->loadFromFiles("Shaders/texture.vert", "Shaders/texture.frag")) {
-        cerr << "Nepodařilo se načíst DirLight shader!\n";
-        exit(EXIT_FAILURE);
-    }
+
     auto scene1 = sceneManager.initializeScene1(shaderLight);
     auto scene2 = sceneManager.initializeScene2(shaderLight);
     auto scene3 = sceneManager.initializeScene3(shaderLight);
