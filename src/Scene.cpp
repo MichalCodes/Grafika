@@ -2,6 +2,9 @@
 #include "../Models/sphere.h"
 #include "../Models/plain.h"
 #include "../Models/suzi_smooth.h"
+#include "../Models/suzi_flat.h"
+#include "../Models/tree.h"
+#include "../Models/bushes.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -39,6 +42,7 @@ void Scene::draw(const glm::mat4& projection, const glm::mat4& view) const {
         shader->setMat4("model", model);
         shader->setMat4("view", view);
         shader->setMat4("projection", projection);
+        if (activeSceneIndex == 4) shader->setUniform("objectColor", glm::vec3(0.6f, 0.8f, 0.6f));
         obj->draw(mvp);
     }
 }
@@ -273,7 +277,7 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
 
         auto earthTrans = make_shared<Transformation>();
         earthTrans->add(make_shared<Translate>(earthPos));
-        earthTrans->add(make_shared<Rotate>(glm::radians(time * orbits[0].spin), glm::vec3(0,1,0))); // rotace Země
+        earthTrans->add(make_shared<Rotate>(glm::radians(time * orbits[0].spin), glm::vec3(0,1,0)));
         earthTrans->add(make_shared<Scale>(glm::vec3(orbits[0].size)));
         solarEarth->setTransformation(earthTrans);
 
@@ -293,6 +297,77 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
             trans->add(make_shared<Rotate>(glm::radians(time * o.spin), glm::vec3(0,1,0)));
             trans->add(make_shared<Scale>(glm::vec3(o.size)));
             o.planet->setTransformation(trans);
+        }
+    } else if (activeSceneIndex == 4) {
+        if (!forestShader) return; 
+        forestShader->use();
+
+        glm::vec3 camPos = camera->getPosition();
+        forestShader->setUniform("viewPos", camPos);
+
+        forestShader->setUniform("flashlight.position", camPos);
+        forestShader->setUniform("flashlight.direction", camera->getFront());
+        forestShader->setUniform("flashlight.color", glm::vec3(1.0f, 1.0f, 0.95f));
+        forestShader->setUniform("flashlight.cutoff", glm::cos(glm::radians(12.5f)));
+        forestShader->setUniform("flashlight.outerCutoff", glm::cos(glm::radians(17.5f)));
+
+        if (!lightBasePositions.empty() && !pointLights.empty()) {
+            for (size_t i = 0; i < pointLights.size() && i < lightBasePositions.size(); ++i) {
+                        float baseY = lightBasePositions[i].y;
+                        float verticalAmplitude = 0.12f;
+                        float orbitY = baseY - verticalAmplitude;
+
+                        float speed = 0.25f + static_cast<float>(i) * 0.05f;
+                        float radius = 0.6f;
+                        float phase = time * speed + static_cast<float>(i) * 1.2f;
+
+                        float x = lightBasePositions[i].x + cos(phase) * radius;
+                        float z = lightBasePositions[i].z + sin(phase) * radius;
+                        glm::vec3 newPos = glm::vec3(x, orbitY, z);
+
+                        float pulse = 0.5f + 0.5f * (0.5f + 0.5f * sin(phase * 2.5f));
+
+                        pointLights[i].setPosition(newPos);
+                        pointLights[i].setIntensity(pulse);
+
+                        if (i < lightMarkers.size() && lightMarkers[i]) {
+                            auto t = make_shared<Transformation>();
+                            t->add(make_shared<Translate>(newPos));
+                            float scale = 0.003f + 0.004f * ((pulse - 0.5f) / 0.5f);
+                            t->add(make_shared<Scale>(glm::vec3(scale)));
+                            lightMarkers[i]->setTransformation(t);
+                        }
+            }
+        }
+
+        if (!pointLights.empty()) {
+            forestShader->setUniform("numLights", static_cast<int>(pointLights.size()));
+            for (size_t i = 0; i < pointLights.size(); ++i) {
+                const auto &pl = pointLights[i];
+                std::string idx = "pointLights[" + std::to_string(i) + "]";
+                forestShader->setUniform(idx + ".position", pl.getPosition());
+                forestShader->setUniform(idx + ".color", pl.getColor() * pl.getIntensity());
+                forestShader->setUniform(idx + ".constant", pl.getConstant());
+                forestShader->setUniform(idx + ".linear", pl.getLinear());
+                forestShader->setUniform(idx + ".quadratic", pl.getQuadratic());
+            }
+        } else {
+            if (fireflies.empty()) {
+                fireflies.push_back({ glm::vec3(-2.0f, 0.4f, -2.0f), glm::vec3(1.0f, 0.7f, 0.5f) });
+                fireflies.push_back({ glm::vec3( 2.0f, 0.6f, -1.0f), glm::vec3(0.5f, 0.7f, 1.0f) });
+                fireflies.push_back({ glm::vec3(-1.5f, 0.5f,  2.0f), glm::vec3(0.8f, 1.0f, 0.6f) });
+                fireflies.push_back({ glm::vec3( 1.2f, 0.5f,  1.8f), glm::vec3(1.0f, 0.6f, 0.8f) });
+            }
+            forestShader->setUniform("numLights", static_cast<int>(fireflies.size()));
+            for (size_t i = 0; i < fireflies.size(); ++i) {
+                const auto& f = fireflies[i];
+                std::string idx = "pointLights[" + std::to_string(i) + "]";
+                forestShader->setUniform(idx + ".position", f.position);
+                forestShader->setUniform(idx + ".color", f.color);
+                forestShader->setUniform(idx + ".constant", 1.0f);
+                forestShader->setUniform(idx + ".linear", 0.045f);
+                forestShader->setUniform(idx + ".quadratic", 0.0075f);
+            }
         }
     }
 }
@@ -513,18 +588,24 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene4(shared_ptr<ProgramSha
             data.push_back(u_coords[i]);
             data.push_back(v_coords[i]);
         }
-
         return make_shared<Model>(data.data(), vertexCount, true);
     };
 
     auto sphereModel = makeTexturedSphere();
+    auto loginModel = Model::loadOBJ("Models/login.obj");
 
-    auto makePlanet = [&](const string& name, float distance, float scale, glm::vec3 color){
+    auto makePlanet = [&](const string& name, float distance, float scale, glm::vec3 color, bool isLogin = false){
         auto t = make_shared<Transformation>();
         t->add(make_shared<Translate>(glm::vec3(distance, 0.0f, 0.0f)));
         t->add(make_shared<Scale>(glm::vec3(scale)));
 
-        auto obj = make_shared<DrawableObject>(sphereModel, shader, t);
+        shared_ptr<DrawableObject> obj;
+        if (isLogin) {
+            obj = make_shared<DrawableObject>(loginModel, shader, t);
+        } else {
+            obj = make_shared<DrawableObject>(sphereModel, shader, t);
+        }
+
         string texPath = "Textures/" + name + ".jpg";
         auto tex = make_shared<Texture>(texPath);
         obj->setTexture(tex);
@@ -547,13 +628,12 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene4(shared_ptr<ProgramSha
     }
 
     auto earth   = makePlanet("earth",   4.0f, 0.35f, glm::vec3(0.2f, 0.3f, 1.0f));
-    auto moon    = makePlanet("moon",    4.6f, 0.10f, glm::vec3(0.8f, 0.8f, 0.8f)); 
-    auto mars    = makePlanet("mars",    5.0f, 0.25f, glm::vec3(1.0f, 0.3f, 0.1f));
+    auto mars    = makePlanet("mars",    5.0f, 0.25f, glm::vec3(1.0f, 0.3f, 0.1f), true);
     auto jupiter = makePlanet("jupiter", 7.0f, 1.20f, glm::vec3(1.0f, 0.8f, 0.5f));
     auto saturn  = makePlanet("saturn", 10.0f, 0.95f, glm::vec3(0.9f, 0.8f, 0.6f));
     auto uranus  = makePlanet("uranus", 13.0f, 1.00f, glm::vec3(0.6f, 0.8f, 1.0f));
     auto neptune = makePlanet("neptune",16.0f, 1.00f, glm::vec3(0.4f, 0.5f, 1.0f));
-
+    auto moon    = makePlanet("moon",    4.0f + 0.6f, 0.10f, glm::vec3(0.8f, 0.8f, 0.8f));
     scene4.push_back(earth);
     scene4.push_back(moon);
     scene4.push_back(mars);
@@ -568,6 +648,67 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene4(shared_ptr<ProgramSha
     solarSaturn  = saturn;
     solarUranus  = uranus;
     solarNeptune = neptune;
-
     return scene4;
-} // Scene.cpp
+}
+
+vector<shared_ptr<DrawableObject>> Scene::initializeScene5(shared_ptr<ProgramShader> shader) {
+    vector<shared_ptr<DrawableObject>> scene2;
+    this->forestShader = shader;
+    float floorVertices[] = {
+        -5.0f, 0.0f, -5.0f,  0.0f, 1.0f, 0.0f,
+         5.0f, 0.0f, -5.0f,  0.0f, 1.0f, 0.0f,
+         5.0f, 0.0f,  5.0f,  0.0f, 1.0f, 0.0f,
+        -5.0f, 0.0f, -5.0f,  0.0f, 1.0f, 0.0f,
+         5.0f, 0.0f,  5.0f,  0.0f, 1.0f, 0.0f,
+        -5.0f, 0.0f,  5.0f,  0.0f, 1.0f, 0.0f
+    };
+    auto floorModel = make_shared<Model>(floorVertices, 6);
+    scene2.push_back(make_shared<DrawableObject>(floorModel, shader, make_shared<Transformation>()));
+
+    int treeVertexCount = sizeof(tree) / sizeof(tree[0]) / 6;
+    auto treeModel = make_shared<Model>(tree, treeVertexCount);
+    std::default_random_engine eng;
+    std::uniform_real_distribution<float> dist(-5.0f, 5.0f);
+    for (int i = 0; i < 50; ++i) {
+        auto t = make_shared<Transformation>();
+        t->add(make_shared<Translate>(glm::vec3(dist(eng), 0.0f, dist(eng))));
+        t->add(make_shared<Scale>(glm::vec3(0.05f)));
+        scene2.push_back(make_shared<DrawableObject>(treeModel, shader, t));
+    }
+
+    int bushVertexCount = sizeof(bushes) / sizeof(bushes[0]) / 6;
+    auto bushModel = make_shared<Model>(bushes, bushVertexCount);
+    for (int i = 0; i < 50; ++i) {
+        auto t = make_shared<Transformation>();
+        t->add(make_shared<Translate>(glm::vec3(dist(eng), 0.0f, dist(eng))));
+        t->add(make_shared<Scale>(glm::vec3(0.5f)));
+        scene2.push_back(make_shared<DrawableObject>(bushModel, shader, t));
+    }
+
+    pointLights.clear();
+    lightBasePositions.clear();
+    lightMarkers.clear();
+
+    lightBasePositions.push_back(glm::vec3(-1.0f, 0.35f, -1.2f));
+    lightBasePositions.push_back(glm::vec3(0.6f,  0.30f,  0.4f));
+    lightBasePositions.push_back(glm::vec3(1.2f,  0.40f,  1.0f));
+
+    for (const auto &pos : lightBasePositions) {
+        Light pl(pos, glm::vec3(1.0f, 0.9f, 0.7f), 0.9f);
+        pl.setAttenuation(1.0f, 0.60f, 0.90f);
+        pointLights.push_back(pl);
+    }
+
+    int sphereVerticesCount = sizeof(sphere) / sizeof(sphere[0]) / 6;
+    auto sphereModel = make_shared<Model>(sphere, sphereVerticesCount);
+    for (size_t i = 0; i < pointLights.size(); ++i) {
+        const auto &pl = pointLights[i];
+        auto t = make_shared<Transformation>();
+        t->add(make_shared<Translate>(pl.getPosition()));
+    t->add(make_shared<Scale>(glm::vec3(0.06f)));
+        auto lightObj = make_shared<DrawableObject>(sphereModel, shader, t);
+        scene2.push_back(lightObj);
+        lightMarkers.push_back(lightObj);
+    }
+    return scene2;
+}

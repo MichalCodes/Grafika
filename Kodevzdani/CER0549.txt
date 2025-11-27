@@ -1,0 +1,28 @@
+CER0549
+
+Scéna 1: Jsou tam dvě opičky na modrou opičku (obj2) aplikována Vlastní Transformace
+(CustomTransform), která mění hodnotu pro homogenní w-složku v transformační matici z 1
+na 20 (ta matice ze zadání). Tím se změnila homogenní složka každého vrcholu opičky v
+renderovacím řetězci došlo k dělení perspektivou čímž se všechny souřadnice podělili
+20ti čímž se opička opticky posunula a zmenšila. 
+
+Scéna 2: Tady jsme na celou scénu s našimi dvěma opičkami aplikovali w=300 (při 500 byl
+problém opičky najít) čímž se stalo to že opičky jsou daleko a pohyb je rychlý což je
+způsobeno stejným mechanismem jako v předchozím kroku, ale tentokrát na celou scénu
+pomocí uniformní proměnné, která násobí výslednou w-složku v shaderu. 
+
+Scéna 3: V mojí implementaci Whack-A-Mole jsou kostky a formule. Kostky jsou za bod a
+formule za dva. Když kliknu na oběkt tak zežloutne a v terminálu se mi přičte skóre + se
+vypíše na co jsem klikl. Formule se pohybuje po lomené přímce kde využívám parametrické
+vyjádření přímky. Objekty vyjíždí z plane jako ve hře whac a mole (kostky jen nahoru a
+dolu formule i horizontálně). Identifikace zasažených objektů je realizována pomocí
+techniky Picking s využitím Stencil Bufferu. Objekty se vytvoří se svým ID a zapíší se
+do Stencil Bufferu, a po kliknutí myší se ID z pozice kurzoru přečte zpět z bufferu, tím
+se určí, objekt který byl zasažen.
+
+Scéna 4: Tady mám implementovanou sluneční soustavu udělal jsem planety od země dál
+včetně rotace kolem vlatní osy a rotace měsíce kolem země. Vzhledem k tomu že naše
+sphere.h nemá texturovací souřadnice tak jsem si je dopočítával sám sférickým mapováním
+což pro planety funguje dobře ale lehce to deformuje texturu na slunci. Slunce je řešené
+tak že má vlastní shader kde jsem bodové světlo umístil dovnitř a má konstantní
+osvětlení.

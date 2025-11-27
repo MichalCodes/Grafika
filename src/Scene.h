@@ -31,6 +31,7 @@ public:
     vector<shared_ptr<DrawableObject>> initializeScene2(shared_ptr<ProgramShader> shader);
     vector<shared_ptr<DrawableObject>> initializeScene3(shared_ptr<ProgramShader> shader);
     vector<shared_ptr<DrawableObject>> initializeScene4(shared_ptr<ProgramShader> shader, shared_ptr<ProgramShader> sunShader);
+    vector<shared_ptr<DrawableObject>> initializeScene5(shared_ptr<ProgramShader> shader);
 private:
     vector<vector<shared_ptr<DrawableObject>>> scenes;
     int activeSceneIndex;
@@ -77,9 +78,26 @@ private:
         float speed = 8.0f;
         bool isActive = false;
     };
+
     FormulaObject formula;
     vector<MoleCube> moleCubes;
     float moleTimer = 0.0f;
     float lastUpdateTime = 0.0f;
     int currentScore = 0;
+
+    struct Flashlight {
+        glm::vec3 position;
+        glm::vec3 direction;
+        float cutoff = glm::cos(glm::radians(12.5f));
+        float outerCutoff = glm::cos(glm::radians(17.5f));
+    } flashlight;
+
+    struct Firefly {
+        glm::vec3 position;
+        glm::vec3 color;
+    };
+
+    vector<Firefly> fireflies;
+    shared_ptr<ProgramShader> forestShader;
+    std::vector<Light> pointLights;
 };
