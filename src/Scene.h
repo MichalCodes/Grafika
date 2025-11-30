@@ -12,10 +12,12 @@
 #include "Camera.h"
 #include "Texture.h"
 #include "CustomTransform.hpp"
+#include "SkyCube.h"
 #include <algorithm>
 using namespace std;
 class DrawableObject;
 class ProgramShader;
+class SkyCube;
 class Scene {
 public:
     Scene();
@@ -32,6 +34,8 @@ public:
     vector<shared_ptr<DrawableObject>> initializeScene3(shared_ptr<ProgramShader> shader);
     vector<shared_ptr<DrawableObject>> initializeScene4(shared_ptr<ProgramShader> shader, shared_ptr<ProgramShader> sunShader);
     vector<shared_ptr<DrawableObject>> initializeScene5(shared_ptr<ProgramShader> shader);
+    vector<shared_ptr<DrawableObject>> initializeScene6(shared_ptr<ProgramShader> pbr_like_shader);
+    void initializeSkyCube(shared_ptr<ProgramShader> skyboxShader);
 private:
     vector<vector<shared_ptr<DrawableObject>>> scenes;
     int activeSceneIndex;
@@ -100,4 +104,10 @@ private:
     vector<Firefly> fireflies;
     shared_ptr<ProgramShader> forestShader;
     std::vector<Light> pointLights;
+    shared_ptr<ProgramShader> sunShader;
+    shared_ptr<ProgramShader> universalShader;
+    shared_ptr<SkyCube> skyCube;
+    // Ukládáme pozice pro světla scén pro runtime aktualizace
+    glm::vec3 sceneLightPos = glm::vec3(2.0f, 0.0f, 10.0f);
+    glm::vec3 scene3DirectionalPos = glm::vec3(0.0f, 10.0f, 0.0f);
 };

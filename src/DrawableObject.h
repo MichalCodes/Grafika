@@ -32,6 +32,9 @@ public:
     void setColor(const glm::vec3& color);
     
     void setTexture(shared_ptr<Texture> tex) { texture = tex; }
+    std::shared_ptr<Texture> getTexture() const {
+        return texture;
+    }
 
     bool isTextured = false;
     glm::vec3 color = glm::vec3(1.0f);

@@ -53,17 +53,33 @@ Application::Application() {
         exit(EXIT_FAILURE);
     }
 
+    auto blinn = make_shared<ProgramShader>(camera.get());
+    if (!blinn->loadFromFiles("Shaders/blinn.vert", "Shaders/blinn.frag")) { // slunce
+        cerr << "Nepodařilo se načíst Sun shader!\n";
+        exit(EXIT_FAILURE);
+    }
+
+    auto shaderSkybox = make_shared<ProgramShader>(camera.get());
+    if (!shaderSkybox->loadFromFiles("Shaders/skybox.vert", "Shaders/skybox.frag")) {
+        cerr << "Nepodařilo se načíst Skybox shader!\n";
+        exit(EXIT_FAILURE);
+    }
+
     auto scene1 = sceneManager.initializeScene1(shaderLight);
     auto scene2 = sceneManager.initializeScene2(shaderLight);
     auto scene3 = sceneManager.initializeScene3(shaderLight);
     auto scene4 = sceneManager.initializeScene4(shaderLight, shaderSun);
     auto scene5 = sceneManager.initializeScene5(shaderForest);
+    auto scene6 = sceneManager.initializeScene6(blinn);
+    
+    sceneManager.initializeSkyCube(shaderSkybox);
 
     sceneManager.addScene(scene1);
     sceneManager.addScene(scene2);
     sceneManager.addScene(scene3);
     sceneManager.addScene(scene4); 
     sceneManager.addScene(scene5);
+    sceneManager.addScene(scene6);
 
     sceneManager.setActiveScene(3);
     inputController = make_unique<EventController>(window, camera, sceneManager);
