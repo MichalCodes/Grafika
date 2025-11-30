@@ -14,6 +14,7 @@ void EventController::processInput(float deltaTime) {
     if(glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) { sceneManager.setActiveScene(3);}
     if(glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) { sceneManager.setActiveScene(4);}
     if(glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS) { sceneManager.setActiveScene(5);}
+    if(glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) { sceneManager.setActiveScene(6);}
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
     if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && camera) camera->reset();
 
