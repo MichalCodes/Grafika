@@ -138,37 +138,44 @@ void SkyCube::render(const glm::mat4& view, const glm::mat4& projection) {
         return;
     }
     
-    // Save current depth state
+    // Save current depth and cull state
     GLint depthFunc;
     GLboolean depthTestEnabled;
+    GLboolean cullFaceEnabled;
+    GLint cullFaceMode;
     glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
     depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
-    
-        shader->use();
+    cullFaceEnabled = glIsEnabled(GL_CULL_FACE);
+    glGetIntegerv(GL_CULL_FACE_MODE, &cullFaceMode);
 
-        // Remove translation from view matrix (skybox moves with camera)
-        glm::mat4 viewNoTranslate = glm::mat4(glm::mat3(view));
+    // Render skybox: ensure it's drawn at far plane and not culled
+    shader->use();
+    glm::mat4 viewNoTranslate = glm::mat4(glm::mat3(view));
+    shader->setMat4("view", viewNoTranslate);
+    shader->setMat4("projection", projection);
+    shader->setUniform("skybox", 0);
 
-        shader->setMat4("view", viewNoTranslate);
-        shader->setMat4("projection", projection);
-        shader->setUniform("skybox", 0);
+    // Set depth function and disable depth writes so skybox is always behind
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+    // Disable face culling to avoid winding/order issues for the cubemap
+    if (cullFaceEnabled) glDisable(GL_CULL_FACE);
 
-        glBindVertexArray(VAO);
-        // draw using indices
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
-    
+
+    // Restore culling state
+    if (cullFaceEnabled) glEnable(GL_CULL_FACE);
+    glCullFace((GLenum)cullFaceMode);
+
     // Restore depth state
     glDepthMask(GL_TRUE);
     glDepthFunc(depthFunc);
-    
     if (!depthTestEnabled) {
         glDisable(GL_DEPTH_TEST);
     }

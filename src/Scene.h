@@ -36,6 +36,7 @@ public:
     vector<shared_ptr<DrawableObject>> initializeScene5(shared_ptr<ProgramShader> shader);
     vector<shared_ptr<DrawableObject>> initializeScene6(shared_ptr<ProgramShader> pbr_like_shader);
     void initializeSkyCube(shared_ptr<ProgramShader> skyboxShader);
+    void toggleFlashlight();
 private:
     vector<vector<shared_ptr<DrawableObject>>> scenes;
     int activeSceneIndex;
@@ -107,6 +108,7 @@ private:
     shared_ptr<ProgramShader> sunShader;
     shared_ptr<ProgramShader> universalShader;
     shared_ptr<SkyCube> skyCube;
+    bool flashlightEnabled = true;
     // Ukládáme pozice pro světla scén pro runtime aktualizace
     glm::vec3 sceneLightPos = glm::vec3(2.0f, 0.0f, 10.0f);
     glm::vec3 scene3DirectionalPos = glm::vec3(0.0f, 10.0f, 0.0f);

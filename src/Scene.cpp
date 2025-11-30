@@ -18,6 +18,10 @@ void Scene::addScene(const vector<shared_ptr<DrawableObject>>& sceneObjects) {
     scenes.push_back(sceneObjects);
 }
 
+void Scene::toggleFlashlight() {
+    flashlightEnabled = !flashlightEnabled;
+}
+
 void Scene::setActiveScene(int index) {
     if (index >= 0 && index < static_cast<int>(scenes.size())) {
         activeSceneIndex = index;
@@ -332,7 +336,12 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
 
         forestShader->setUniform("flashlight.position", camPos);
         forestShader->setUniform("flashlight.direction", camera->getFront());
-        forestShader->setUniform("flashlight.color", glm::vec3(1.0f, 1.0f, 0.95f));
+        // If flashlight disabled, send zero color so it contributes nothing
+        if (flashlightEnabled) {
+            forestShader->setUniform("flashlight.color", glm::vec3(1.0f, 1.0f, 0.95f));
+        } else {
+            forestShader->setUniform("flashlight.color", glm::vec3(0.0f));
+        }
         forestShader->setUniform("flashlight.cutoff", glm::cos(glm::radians(12.5f)));
         forestShader->setUniform("flashlight.outerCutoff", glm::cos(glm::radians(17.5f)));
 

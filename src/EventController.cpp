@@ -19,6 +19,8 @@ void EventController::processInput(float deltaTime) {
 
     static bool eKeyWasPressed = false;
 
+    static bool fKeyWasPressed = false;
+
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
         if (!eKeyWasPressed) {
             eKeyWasPressed = true;
@@ -34,6 +36,16 @@ void EventController::processInput(float deltaTime) {
         }
     } else {
         eKeyWasPressed = false;
+    }
+    
+    // Toggle flashlight in forest scene (press F)
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
+        if (!fKeyWasPressed) {
+            fKeyWasPressed = true;
+            sceneManager.toggleFlashlight();
+        }
+    } else {
+        fKeyWasPressed = false;
     }
     
     float deltaForward = 0.0f;
