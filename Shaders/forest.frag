@@ -26,7 +26,7 @@ in vec3 FragPos;
 in vec3 Normal;
 out vec4 FragColor;
 
-// ---- výpočet bodového světla ----
+// ---- bodové světlo ----
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     vec3 lightDir = normalize(light.position - fragPos);
     float diff = max(dot(normal, lightDir), 0.0);
@@ -45,7 +45,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     return (ambient + diffuse + specular) * attenuation;
 }
 
-// ---- výpočet světla z baterky ----
+// ---- baterka ----
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     vec3 lightDir = normalize(light.position - fragPos);
     float diff = max(dot(normal, lightDir), 0.0);
@@ -67,12 +67,12 @@ void main() {
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
 
-    vec3 result = vec3(0.02, 0.02, 0.02); // základní ambient
+    vec3 result = vec3(0.02, 0.02, 0.02); // ambient
 
-    // 💡 přidáme baterku
+    // baterka
     result += CalcSpotLight(flashlight, norm, FragPos, viewDir);
 
-    // 💡 přidáme všechna bodová světla (bludičky)
+    // bludicky
     for (int i = 0; i < numLights; i++) {
         result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
     }

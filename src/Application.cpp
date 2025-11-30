@@ -7,6 +7,12 @@
 
 using namespace std;
 
+static void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    // Ensure we always have a valid viewport (height may be 0 if minimized)
+    if (height <= 0) height = 1;
+    glViewport(0, 0, width, height);
+}
+
 Application::Application() {
 
     if (!glfwInit()) {
@@ -32,6 +38,14 @@ Application::Application() {
 
     glEnable(GL_DEPTH_TEST);
 
+    // Set initial viewport to the current framebuffer size
+    int fbw = 0, fbh = 0;
+    glfwGetFramebufferSize(window, &fbw, &fbh);
+    if (fbh == 0) fbh = 1;
+    glViewport(0, 0, fbw, fbh);
+    // Register resize callback so viewport updates automatically
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
     camera = make_shared<Camera>(glm::vec3(0.0f, 0.2f, 0.0f));
     camera->front = glm::normalize(glm::vec3(0.5f, 0.2f, 0.5f) - camera->position);
     camera->updateCameraVectors();
@@ -48,8 +62,8 @@ Application::Application() {
         exit(EXIT_FAILURE);
     }
     auto shaderForest = make_shared<ProgramShader>(camera.get());
-    if (!shaderForest->loadFromFiles("Shaders/forest.vert", "Shaders/forest.frag")) { // slunce
-        cerr << "Nepodařilo se načíst Sun shader!\n";
+    if (!shaderForest->loadFromFiles("Shaders/forest.vert", "Shaders/forest.frag")) { // les
+        cerr << "Nepodařilo se načíst Forest shader!\n";
         exit(EXIT_FAILURE);
     }
 
@@ -60,8 +74,20 @@ Application::Application() {
     }
 
     auto shaderSkybox = make_shared<ProgramShader>(camera.get());
-    if (!shaderSkybox->loadFromFiles("Shaders/skybox.vert", "Shaders/skybox.frag")) {
+    if (!shaderSkybox->loadFromFiles("Shaders/skybox.vert", "Shaders/skybox.frag")) { // skybox
         cerr << "Nepodařilo se načíst Skybox shader!\n";
+        exit(EXIT_FAILURE);
+    }
+
+    auto lambert = make_shared<ProgramShader>(camera.get());
+    if (!lambert->loadFromFiles("Shaders/lambert.vert", "Shaders/lambert.frag")) { // Lambert shader
+        cerr << "Nepodařilo se načíst Lambert shader!\n";
+        exit(EXIT_FAILURE);
+    }
+
+    shader = make_shared<ProgramShader>(camera.get());
+    if (!shader->loadFromFiles("Shaders/basic.vert", "Shaders/basic.frag")) {
+        cerr << "Shader load failed!\n";
         exit(EXIT_FAILURE);
     }
 
@@ -70,7 +96,8 @@ Application::Application() {
     auto scene3 = sceneManager.initializeScene3(shaderLight);
     auto scene4 = sceneManager.initializeScene4(shaderLight, shaderSun);
     auto scene5 = sceneManager.initializeScene5(shaderForest);
-    auto scene6 = sceneManager.initializeScene6(blinn);
+    auto scene6 = sceneManager.initializeScene6(blinn, lambert);
+    auto scene7 = sceneManager.initializeScene7(shader);
     
     sceneManager.initializeSkyCube(shaderSkybox);
 
@@ -80,6 +107,7 @@ Application::Application() {
     sceneManager.addScene(scene4); 
     sceneManager.addScene(scene5);
     sceneManager.addScene(scene6);
+    sceneManager.addScene(scene7);
 
     sceneManager.setActiveScene(3);
     inputController = make_unique<EventController>(window, camera, sceneManager);
@@ -106,7 +134,12 @@ void Application::run() {
         sceneManager.update(time, shaderForest, camera);
         shader->update();
 
-        glm::mat4 projection = camera->getProjectionMatrix(1000.0f / 800.0f);
+        // Query current framebuffer size so projection matches actual window
+        int curW = 0, curH = 0;
+        glfwGetFramebufferSize(window, &curW, &curH);
+        if (curH == 0) curH = 1;
+        float aspect = static_cast<float>(curW) / static_cast<float>(curH);
+        glm::mat4 projection = camera->getProjectionMatrix(aspect);
         glm::mat4 view = camera->getViewMatrix();
 
         sceneManager.draw(projection, view);

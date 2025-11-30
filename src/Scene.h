@@ -34,7 +34,8 @@ public:
     vector<shared_ptr<DrawableObject>> initializeScene3(shared_ptr<ProgramShader> shader);
     vector<shared_ptr<DrawableObject>> initializeScene4(shared_ptr<ProgramShader> shader, shared_ptr<ProgramShader> sunShader);
     vector<shared_ptr<DrawableObject>> initializeScene5(shared_ptr<ProgramShader> shader);
-    vector<shared_ptr<DrawableObject>> initializeScene6(shared_ptr<ProgramShader> pbr_like_shader);
+    vector<shared_ptr<DrawableObject>> initializeScene6(shared_ptr<ProgramShader> pbr_like_shader, shared_ptr<ProgramShader> lambertShader);
+    vector<shared_ptr<DrawableObject>> initializeScene7(shared_ptr<ProgramShader> shader);
     void initializeSkyCube(shared_ptr<ProgramShader> skyboxShader);
     void toggleFlashlight();
 private:
@@ -59,7 +60,7 @@ private:
     shared_ptr<DrawableObject> solarNeptune;
     shared_ptr<DrawableObject> solarMercury;
     shared_ptr<DrawableObject> solarVenus;
-
+    shared_ptr<DrawableObject> triangleObject;
     struct MoleCube {
         shared_ptr<DrawableObject> obj;
         float baseY;
@@ -79,8 +80,11 @@ private:
         shared_ptr<DrawableObject> obj;
         glm::vec3 startPos;
         glm::vec3 endPos;
-        float currentX;
-        float speed = 8.0f;
+        float currentT;
+        // control points for cubic Bezier (on plane)
+        glm::vec3 cp1;
+        glm::vec3 cp2;
+        float speed = 0.25f; // t per second
         bool isActive = false;
     };
 
@@ -109,7 +113,6 @@ private:
     shared_ptr<ProgramShader> universalShader;
     shared_ptr<SkyCube> skyCube;
     bool flashlightEnabled = true;
-    // Ukládáme pozice pro světla scén pro runtime aktualizace
     glm::vec3 sceneLightPos = glm::vec3(2.0f, 0.0f, 10.0f);
     glm::vec3 scene3DirectionalPos = glm::vec3(0.0f, 10.0f, 0.0f);
 };

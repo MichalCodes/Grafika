@@ -12,6 +12,17 @@
 #include <cmath>
 
 using namespace std;
+
+// Bézierova kubika pro výpočet pozice formule
+// p0, p1, p2, p3 jsou kontrolní body; t je v rozsahu [0, 1]
+static glm::vec3 bezierCubic(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, float t) {
+    float mt = 1.0f - t;
+    float b0 = mt * mt * mt;
+    float b1 = 3.0f * mt * mt * t;
+    float b2 = 3.0f * mt * t * t;
+    float b3 = t * t * t;
+    return b0 * p0 + b1 * p1 + b2 * p2 + b3 * p3;
+}
 Scene::Scene() : activeSceneIndex(0) {}
 
 void Scene::addScene(const vector<shared_ptr<DrawableObject>>& sceneObjects) {
@@ -185,6 +196,13 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
     float deltaTime = time - lastUpdateTime;
     lastUpdateTime = time;
     if (deltaTime < 0.0f || deltaTime > 1.0f) deltaTime = 0.016f;
+    
+    if (activeSceneIndex == 0 && triangleObject) {
+        auto composite = make_shared<Transformation>();
+        composite->add(make_shared<Translate>(glm::vec3(0.0f, -0.2f, 0.0f)));
+        composite->add(make_shared<Rotate>(time, glm::vec3(0.0f, 0.0f, 1.0f)));
+        triangleObject->setTransformation(composite);
+    }
 
     if (activeSceneIndex == 2) {
         if (moleCubes.empty()) return;
@@ -237,36 +255,39 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
 
         if (!formula.isActive && formulaSpawnTimer > 7.0f) {
             formula.isActive = true;
-            formula.currentX = formula.startPos.x; 
+            formula.currentT = 0.0f; 
             formulaSpawnTimer = 0.0f; 
         }
 
         if (formula.isActive) {
-            formula.currentX += formula.speed * deltaTime;
-            const float visibleHeight = 0.5f;
-            const float submergedDepth = -1.0f;
+            // currentT represents the normalized parameter t in [0,1]
+            formula.currentT += formula.speed * deltaTime;
+            float t = glm::clamp(formula.currentT, 0.0f, 1.0f);
+            
+            // Kontrolní body Bézierovy kubiky:
+            // p0 = start (vpravo nahoře)
+            // p1 = start (ovládá kurvu)
+            // p2 = end (ovládá kurvu)
+            // p3 = end (vlevo nahoře)
+            // Create S-shaped path across the plane (vary Z, keep Y on plane)
+            float planeY = formula.startPos.y; // keep on-plane
             const float plainStart = formula.startPos.x;
             const float plainEnd = formula.endPos.x;
-            const float plainCenter = (plainStart + plainEnd) / 2.0f;
+            const float plainWidth = plainEnd - plainStart;
+            glm::vec3 p0(plainStart, planeY, formula.startPos.z);      // Start
+            glm::vec3 p1(plainStart + plainWidth * 0.33f, planeY, formula.startPos.z + 3.0f); // move out in +Z
+            glm::vec3 p2(plainStart + plainWidth * 0.66f, planeY, formula.startPos.z - 3.0f); // move out in -Z
+            glm::vec3 p3(plainEnd, planeY, formula.startPos.z);        // End
             
-            float yPos;
+            glm::vec3 currentPos = bezierCubic(p0, p1, p2, p3, t);
+            
+            auto t_trans = make_shared<Transformation>();
+            t_trans->add(make_shared<Translate>(currentPos));
+            t_trans->add(make_shared<Rotate>(glm::radians(180.0f), glm::vec3(0, 1, 0))); 
+            t_trans->add(make_shared<Scale>(glm::vec3(0.1f)));
+            formula.obj->setTransformation(t_trans);
 
-            if (formula.currentX < plainCenter) {
-                float progress = (formula.currentX - plainStart) / (plainCenter - plainStart);
-                yPos = submergedDepth + progress * (visibleHeight - submergedDepth);
-            } else {
-                float progress = (formula.currentX - plainCenter) / (plainEnd - plainCenter);
-                yPos = visibleHeight - progress * (visibleHeight - submergedDepth);
-            }
-            yPos = glm::max(submergedDepth, yPos); 
-            glm::vec3 currentPos(formula.currentX, yPos, formula.startPos.z);
-            auto t = make_shared<Transformation>();
-            t->add(make_shared<Translate>(currentPos));
-            t->add(make_shared<Rotate>(glm::radians(180.0f), glm::vec3(0, 1, 0))); 
-            t->add(make_shared<Scale>(glm::vec3(0.1f)));
-            formula.obj->setTransformation(t);
-
-            if (formula.currentX >= formula.endPos.x) {
+            if (formula.currentT >= 1.0f) {
                 formula.isActive = false;
             }
         }
@@ -558,7 +579,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene3(shared_ptr<ProgramSha
     
     const float trackZ = 5.0f;
     
-    glm::vec3 formulaStartPos(-8.0f, -1.0f, trackZ); 
+    glm::vec3 formulaStartPos(-8.0f, 0.2f, trackZ); 
 
     auto tFormula = make_shared<Transformation>();
     tFormula->add(make_shared<Translate>(formulaStartPos));
@@ -573,8 +594,8 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene3(shared_ptr<ProgramSha
 
     formula.obj = formulaObj;
     formula.startPos = formulaStartPos;
-    formula.endPos = glm::vec3(8.0f, -1.0f, trackZ);
-    formula.currentX = formulaStartPos.x;
+    formula.endPos = glm::vec3(8.0f, 0.2f, trackZ);
+    formula.currentT = 0.0f;
     formula.isActive = false; 
     return scene3;
 }
@@ -787,7 +808,8 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene5(shared_ptr<ProgramSha
 }
 
 vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
-    shared_ptr<ProgramShader> pbr_like_shader)
+    shared_ptr<ProgramShader> pbr_like_shader,
+    shared_ptr<ProgramShader> lambertShader)
 {
     vector<shared_ptr<DrawableObject>> scene6;
 
@@ -873,13 +895,10 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
     }
 
     // --- Row 2 (Index 1): LAMBERT (Model 0 - BEZ LESKU) ---
-    if (pbr_like_shader) {
-        pbr_like_shader->use();
-        pbr_like_shader->setUniform("lightPosition", lightPosMonkeys);
-        pbr_like_shader->setUniform("lightingModel", 0);  // Lambert
-        pbr_like_shader->setUniform("materialShininess", 0.0f); // Klíčová oprava: Lesk 0
-        pbr_like_shader->setUniform("materialSpecularStrength", 0.0f); // OPRAVA: Bez spekulární síly
-        pbr_like_shader->setUniform("useNormalMatrix", 0);
+    if (lambertShader) {
+        lambertShader->use();
+        lambertShader->setUniform("lightPosition", lightPosMonkeys);
+        lambertShader->setUniform("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
     }
     // Flat variant
     {
@@ -887,7 +906,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
         tFlat->add(make_shared<Translate>(glm::vec3(-deltaX / 2.0f, startY + 1 * deltaY, suziZ)));
         tFlat->add(make_shared<Rotate>(SUZI_ROTATION, glm::vec3(0, 1, 0)));
         tFlat->add(make_shared<Scale>(glm::vec3(0.5f)));
-        auto objFlat = make_shared<DrawableObject>(suziFlatModel, pbr_like_shader, tFlat);
+        auto objFlat = make_shared<DrawableObject>(suziFlatModel, lambertShader, tFlat);
         objFlat->setColor(UNIFORM_COLOR);
         scene6.push_back(objFlat);
     }
@@ -897,7 +916,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
         tSmooth->add(make_shared<Translate>(glm::vec3(deltaX / 2.0f, startY + 1 * deltaY, suziZ)));
         tSmooth->add(make_shared<Rotate>(SUZI_ROTATION, glm::vec3(0, 1, 0)));
         tSmooth->add(make_shared<Scale>(glm::vec3(0.5f)));
-        auto objSmooth = make_shared<DrawableObject>(suziSmoothModel, pbr_like_shader, tSmooth);
+        auto objSmooth = make_shared<DrawableObject>(suziSmoothModel, lambertShader, tSmooth);
         objSmooth->setColor(UNIFORM_COLOR);
         scene6.push_back(objSmooth);
     }
@@ -963,6 +982,17 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
         scene6.push_back(objSmooth);
     }
     return scene6;
+}
+
+vector<shared_ptr<DrawableObject>> Scene::initializeScene7(shared_ptr<ProgramShader> shader){
+    float triangleVertices[] = {
+         0.0f,  0.4f, 0.0f,   1.0f, 0.0f, 0.0f,
+         0.433f, -0.25f, 0.0f,  0.0f, 1.0f, 0.0f,
+        -0.433f, -0.25f, 0.0f,  0.0f, 0.0f, 1.0f
+    };
+    auto triangleModel = make_shared<Model>(triangleVertices, 3);
+    triangleObject = make_shared<DrawableObject>(triangleModel, shader, make_shared<Transformation>());
+    return {triangleObject};
 }
 
 void Scene::initializeSkyCube(shared_ptr<ProgramShader> skyboxShader) {

@@ -11,12 +11,9 @@ out vec3 FragPos;
 out vec3 Normal;
 
 void main() {
-    // Pozice fragmentu ve světových souřadnicích
     FragPos = vec3(model * vec4(in_Position, 1.0));
 
-    // Korektní transformace normály
     Normal = mat3(transpose(inverse(model))) * in_Normal;
 
-    // Výpočet finální pozice na obrazovce
     gl_Position = projection * view * vec4(FragPos, 1.0);
 }
