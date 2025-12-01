@@ -39,7 +39,6 @@ void EventController::processInput(float deltaTime) {
         eKeyWasPressed = false;
     }
     
-    // Toggle flashlight in forest scene (press F)
     if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
         if (!fKeyWasPressed) {
             fKeyWasPressed = true;

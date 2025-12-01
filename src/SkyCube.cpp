@@ -16,7 +16,6 @@ SkyCube::~SkyCube() {
 }
 
 void SkyCube::setupCube() {
-    // Skybox cube vertices (large cube centered at origin)
     float size = 1.0f;
     float vertices[] = {
         // Front
@@ -68,7 +67,6 @@ void SkyCube::setupCube() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // Keep EBO bound to VAO so we can draw elements later
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
@@ -83,8 +81,7 @@ bool SkyCube::loadCubemap(const std::string& posX, const std::string& negX,
                           const std::string& posZ, const std::string& negZ) {
     glGenTextures(1, &cubemapTexture);
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-    
-    // Order: +X, -X, +Y, -Y, +Z, -Z
+
     std::string faces[6] = { posX, negX, posY, negY, posZ, negZ };
     GLenum faceTargets[6] = {
         GL_TEXTURE_CUBE_MAP_POSITIVE_X,
@@ -138,7 +135,6 @@ void SkyCube::render(const glm::mat4& view, const glm::mat4& projection) {
         return;
     }
     
-    // Save current depth and cull state
     GLint depthFunc;
     GLboolean depthTestEnabled;
     GLboolean cullFaceEnabled;
@@ -148,18 +144,15 @@ void SkyCube::render(const glm::mat4& view, const glm::mat4& projection) {
     cullFaceEnabled = glIsEnabled(GL_CULL_FACE);
     glGetIntegerv(GL_CULL_FACE_MODE, &cullFaceMode);
 
-    // Render skybox: ensure it's drawn at far plane and not culled
     shader->use();
     glm::mat4 viewNoTranslate = glm::mat4(glm::mat3(view));
     shader->setMat4("view", viewNoTranslate);
     shader->setMat4("projection", projection);
     shader->setUniform("skybox", 0);
 
-    // Set depth function and disable depth writes so skybox is always behind
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_FALSE);
 
-    // Disable face culling to avoid winding/order issues for the cubemap
     if (cullFaceEnabled) glDisable(GL_CULL_FACE);
 
     glActiveTexture(GL_TEXTURE0);
@@ -169,11 +162,9 @@ void SkyCube::render(const glm::mat4& view, const glm::mat4& projection) {
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
-    // Restore culling state
     if (cullFaceEnabled) glEnable(GL_CULL_FACE);
     glCullFace((GLenum)cullFaceMode);
 
-    // Restore depth state
     glDepthMask(GL_TRUE);
     glDepthFunc(depthFunc);
     if (!depthTestEnabled) {

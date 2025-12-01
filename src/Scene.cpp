@@ -13,8 +13,7 @@
 
 using namespace std;
 
-// Bézierova kubika pro výpočet pozice formule
-// p0, p1, p2, p3 jsou kontrolní body; t je v rozsahu [0, 1]
+
 static glm::vec3 bezierCubic(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, float t) {
     float mt = 1.0f - t;
     float b0 = mt * mt * mt;
@@ -52,7 +51,6 @@ void Scene::draw(const glm::mat4& projection, const glm::mat4& view) const {
         auto shader = obj->getShader();
         shader->use();
 
-        // 1. Nastavení uniform pro scénu
         if (activeSceneIndex == 0) shader->setUniform("w", 1.0f);
         else if (activeSceneIndex == 1) shader->setUniform("w", 300.0f);
         else shader->setUniform("w", 1.0f);
@@ -68,7 +66,7 @@ void Scene::draw(const glm::mat4& projection, const glm::mat4& view) const {
 
         if (obj->getTexture() && obj->getShader() == sunShader) {
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, obj->getTexture()->getID()); // Musíte získat ID textury
+            glBindTexture(GL_TEXTURE_2D, obj->getTexture()->getID());
         }
         
         if (activeSceneIndex == 2 && obj->getTexture()) {
@@ -76,13 +74,10 @@ void Scene::draw(const glm::mat4& projection, const glm::mat4& view) const {
             glBindTexture(GL_TEXTURE_2D, obj->getTexture()->getID()); 
         }
 
-        // 3. Renderování
         obj->draw(mvp);
     }
 
-    // Render skybox last for Scene 3 so it's always visually behind scene geometry
     if (activeSceneIndex == 2 && skyCube) {
-        // SkyCube::render disables depth writes and uses GL_LEQUAL internally
         skyCube->render(view, projection);
     }
 }
@@ -260,24 +255,17 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
         }
 
         if (formula.isActive) {
-            // currentT represents the normalized parameter t in [0,1]
             formula.currentT += formula.speed * deltaTime;
             float t = glm::clamp(formula.currentT, 0.0f, 1.0f);
             
-            // Kontrolní body Bézierovy kubiky:
-            // p0 = start (vpravo nahoře)
-            // p1 = start (ovládá kurvu)
-            // p2 = end (ovládá kurvu)
-            // p3 = end (vlevo nahoře)
-            // Create S-shaped path across the plane (vary Z, keep Y on plane)
-            float planeY = formula.startPos.y; // keep on-plane
+            float planeY = formula.startPos.y;
             const float plainStart = formula.startPos.x;
             const float plainEnd = formula.endPos.x;
             const float plainWidth = plainEnd - plainStart;
-            glm::vec3 p0(plainStart, planeY, formula.startPos.z);      // Start
-            glm::vec3 p1(plainStart + plainWidth * 0.33f, planeY, formula.startPos.z + 3.0f); // move out in +Z
-            glm::vec3 p2(plainStart + plainWidth * 0.66f, planeY, formula.startPos.z - 3.0f); // move out in -Z
-            glm::vec3 p3(plainEnd, planeY, formula.startPos.z);        // End
+            glm::vec3 p0(plainStart, planeY, formula.startPos.z);
+            glm::vec3 p1(plainStart + plainWidth * 0.33f, planeY, formula.startPos.z + 3.0f);
+            glm::vec3 p2(plainStart + plainWidth * 0.66f, planeY, formula.startPos.z - 3.0f);
+            glm::vec3 p3(plainEnd, planeY, formula.startPos.z);
             
             glm::vec3 currentPos = bezierCubic(p0, p1, p2, p3, t);
             
@@ -357,7 +345,6 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
 
         forestShader->setUniform("flashlight.position", camPos);
         forestShader->setUniform("flashlight.direction", camera->getFront());
-        // If flashlight disabled, send zero color so it contributes nothing
         if (flashlightEnabled) {
             forestShader->setUniform("flashlight.color", glm::vec3(1.0f, 1.0f, 0.95f));
         } else {
@@ -426,14 +413,12 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
         }
     }
 
-    // Per-frame: pokud máme uložený `universalShader` (scény 1..3), aktualizujme jeho polo- nebo směrové světlo
     if (activeSceneIndex == 0 || activeSceneIndex == 1) {
         if (universalShader) {
             universalShader->use();
             universalShader->setUniform("lightPosition", sceneLightPos);
         }
     } else if (activeSceneIndex == 2) {
-        // Scéna 3: chceme směrové světlo pro horní stranu plane — simulujeme to velmi vzdálenou pozicí
         if (universalShader) {
             universalShader->use();
             universalShader->setUniform("lightPosition", scene3DirectionalPos);
@@ -444,7 +429,6 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
 vector<shared_ptr<DrawableObject>> Scene::initializeScene1(shared_ptr<ProgramShader> shader) {
     vector<shared_ptr<DrawableObject>> scene1;
     this->universalShader = shader;
-    // Pozice světla: frontální osvětlení pro oranžovou opičku
     sceneLightPos = glm::vec3(0.0f, 0.3f, 2.0f);
     shader->use();
     shader->setUniform("lightPosition", sceneLightPos);
@@ -474,9 +458,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene1(shared_ptr<ProgramSha
 
 vector<shared_ptr<DrawableObject>> Scene::initializeScene2(shared_ptr<ProgramShader> shader) {
     vector<shared_ptr<DrawableObject>> scene2;
-    // ukládej shader tak, aby šel později aktualizovat
     this->universalShader = shader;
-    // vzdálené světlo mimo opičky
     sceneLightPos = glm::vec3(-10.0f, 2.0f, 10.0f);
     shader->use();
     shader->setUniform("lightPosition", sceneLightPos);
@@ -507,9 +489,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene2(shared_ptr<ProgramSha
 vector<shared_ptr<DrawableObject>> Scene::initializeScene3(shared_ptr<ProgramShader> shader) {
     vector<shared_ptr<DrawableObject>> scene3;
     currentScore = 0;
-    // ukládej shader pro runtime aktualizaci světla
     this->universalShader = shader;
-    // Pro scénu 3 chceme směrové světlo — simulujeme to velmi vzdálenou polohou nad plánem
     scene3DirectionalPos = glm::vec3(0.0f, 10.0f, 0.0f);
     shader->use();
     shader->setUniform("lightPosition", scene3DirectionalPos);
@@ -867,13 +847,12 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
     }
     
     glm::vec3 lightPosMonkeys = lightPosSpheres;
-    
-    // Row 1 (Index 0): Constant shader (bez osvětlení, jen barva) - Flat + Smooth
+
     if (this->sunShader) {
         this->sunShader->use();
         this->sunShader->setUniform("hasTexture", 0);
     }
-    // Flat variant
+
     {
         auto tFlat = make_shared<Transformation>();
         tFlat->add(make_shared<Translate>(glm::vec3(-deltaX / 2.0f, startY + 0 * deltaY, suziZ)));
@@ -883,7 +862,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
         objFlat->setColor(UNIFORM_COLOR);
         scene6.push_back(objFlat);
     }
-    // Smooth variant
+
     {
         auto tSmooth = make_shared<Transformation>();
         tSmooth->add(make_shared<Translate>(glm::vec3(deltaX / 2.0f, startY + 0 * deltaY, suziZ)));
@@ -894,13 +873,12 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
         scene6.push_back(objSmooth);
     }
 
-    // --- Row 2 (Index 1): LAMBERT (Model 0 - BEZ LESKU) ---
     if (lambertShader) {
         lambertShader->use();
         lambertShader->setUniform("lightPosition", lightPosMonkeys);
         lambertShader->setUniform("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
     }
-    // Flat variant
+
     {
         auto tFlat = make_shared<Transformation>();
         tFlat->add(make_shared<Translate>(glm::vec3(-deltaX / 2.0f, startY + 1 * deltaY, suziZ)));
@@ -910,7 +888,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
         objFlat->setColor(UNIFORM_COLOR);
         scene6.push_back(objFlat);
     }
-    // Smooth variant
+
     {
         auto tSmooth = make_shared<Transformation>();
         tSmooth->add(make_shared<Translate>(glm::vec3(deltaX / 2.0f, startY + 1 * deltaY, suziZ)));
@@ -921,16 +899,15 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
         scene6.push_back(objSmooth);
     }
 
-    // --- Row 3 (Index 2): PHONG (Model 1) ---
     if (pbr_like_shader) {
         pbr_like_shader->use();
         pbr_like_shader->setUniform("lightPosition", lightPosMonkeys);
-        pbr_like_shader->setUniform("lightingModel", 1);  // Phong
+        pbr_like_shader->setUniform("lightingModel", 1);
         pbr_like_shader->setUniform("materialShininess", 64.0f);
-        pbr_like_shader->setUniform("materialSpecularStrength", 0.5f); // Viditelný lesk
+        pbr_like_shader->setUniform("materialSpecularStrength", 0.5f);
         pbr_like_shader->setUniform("useNormalMatrix", 0);
     }
-    // Flat variant (left)
+
     {
         auto tFlat = make_shared<Transformation>();
         tFlat->add(make_shared<Translate>(glm::vec3(-deltaX / 2.0f, startY + 2 * deltaY, suziZ)));
@@ -940,7 +917,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
         objFlat->setColor(UNIFORM_COLOR);
         scene6.push_back(objFlat);
     }
-    // Smooth variant (right) - Střední a pravá opička je spojena do jedné
+
     {
         auto tSmooth = make_shared<Transformation>();
         tSmooth->add(make_shared<Translate>(glm::vec3(deltaX / 2.0f, startY + 2 * deltaY, suziZ)));
@@ -950,18 +927,17 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
         objSmooth->setColor(UNIFORM_COLOR);
         scene6.push_back(objSmooth);
     }
-    // ZDE JSEM ODEBRAL PŮVODNÍ TŘETÍ OPIČKU S useNormalMatrix = 1
 
-    // Row 4 (Index 3): Blinn-Phong (Model 2) - Flat + Smooth
+
     if (pbr_like_shader) {
         pbr_like_shader->use();
         pbr_like_shader->setUniform("lightPosition", lightPosMonkeys);
-        pbr_like_shader->setUniform("lightingModel", 2);  // Blinn-Phong
+        pbr_like_shader->setUniform("lightingModel", 2);
         pbr_like_shader->setUniform("materialShininess", 128.0f);
-        pbr_like_shader->setUniform("materialSpecularStrength", 0.5f); // Viditelný lesk
+        pbr_like_shader->setUniform("materialSpecularStrength", 0.5f);
         pbr_like_shader->setUniform("useNormalMatrix", 0);
     }
-    // Flat variant
+
     {
         auto tFlat = make_shared<Transformation>();
         tFlat->add(make_shared<Translate>(glm::vec3(-deltaX / 2.0f, startY + 3 * deltaY, suziZ)));
@@ -971,7 +947,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene6(
         objFlat->setColor(UNIFORM_COLOR);
         scene6.push_back(objFlat);
     }
-    // Smooth variant
+
     {
         auto tSmooth = make_shared<Transformation>();
         tSmooth->add(make_shared<Translate>(glm::vec3(deltaX / 2.0f, startY + 3 * deltaY, suziZ)));
@@ -998,13 +974,12 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene7(shared_ptr<ProgramSha
 void Scene::initializeSkyCube(shared_ptr<ProgramShader> skyboxShader) {
     skyCube = make_shared<SkyCube>();
     
-    // Load cubemap textures in order: +X, -X, +Y, -Y, +Z, -Z
     std::string texturePath = "Textures/";
     if (!skyCube->loadCubemap(
         texturePath + "posx.jpg",    // +X
         texturePath + "negx.jpg",    // -X
-        texturePath + "negy.jpg",    // +Y - zamerna zmena takto je to dobře
-        texturePath + "posy.jpg",    // -Y - zamerna zmena takto je to dobře
+        texturePath + "negy.jpg",    // -Y 
+        texturePath + "posy.jpg",    // +Y 
         texturePath + "posz.jpg",    // +Z
         texturePath + "negz.jpg"     // -Z
     )) {

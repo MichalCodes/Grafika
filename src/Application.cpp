@@ -8,7 +8,6 @@
 using namespace std;
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    // Ensure we always have a valid viewport (height may be 0 if minimized)
     if (height <= 0) height = 1;
     glViewport(0, 0, width, height);
 }
@@ -38,12 +37,10 @@ Application::Application() {
 
     glEnable(GL_DEPTH_TEST);
 
-    // Set initial viewport to the current framebuffer size
     int fbw = 0, fbh = 0;
     glfwGetFramebufferSize(window, &fbw, &fbh);
     if (fbh == 0) fbh = 1;
     glViewport(0, 0, fbw, fbh);
-    // Register resize callback so viewport updates automatically
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     camera = make_shared<Camera>(glm::vec3(0.0f, 0.2f, 0.0f));
@@ -134,7 +131,6 @@ void Application::run() {
         sceneManager.update(time, shaderForest, camera);
         shader->update();
 
-        // Query current framebuffer size so projection matches actual window
         int curW = 0, curH = 0;
         glfwGetFramebufferSize(window, &curW, &curH);
         if (curH == 0) curH = 1;
