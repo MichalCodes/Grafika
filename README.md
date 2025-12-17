@@ -7,9 +7,9 @@ E - uvolňuje kurzor
 Pohyb myší - otáčení kam se koukám
 Klikání - identifikace oběktů
 
-## Závislosti 
-[text](https://github.com/nothings/stb.git)
-[text](https://github.com/tinyobjloader/tinyobjloader.git)
+## Externí závislosti 
+[stb](https://github.com/nothings/stb.git),
+[tinyobjloader](https://github.com/tinyobjloader/tinyobjloader.git)
 
 ## Scény
 1. pokus s vlastní transformací (zmena w slozky na 20)
@@ -20,3 +20,9 @@ Klikání - identifikace oběktů
 6. Opičky a kuličky - srovnání a demonstrace správného fungování osvětlovacích modelů (sun, lambert, blinn)
 7. rotující trojuhelník který používá normálu jako barvu z prvních cvik (basic.vert/frag)
 `38/45b`
+<img width="729" height="919" alt="Snímek obrazovky z 2025-12-17 17-53-54" src="https://github.com/user-attachments/assets/7bc69015-54a9-46f7-b9af-b1fbb4a2470f" />
+<img width="1329" height="915" alt="Snímek obrazovky z 2025-12-17 17-53-18" src="https://github.com/user-attachments/assets/6bddeb73-a7a9-45d8-8558-dc60869d2ba9" />
+<img width="1094" height="843" alt="Snímek obrazovky z 2025-12-17 17-52-29" src="https://github.com/user-attachments/assets/f123e4de-be6e-420b-ab56-d6d4d9dfc6d8" />
+<img width="1094" height="843" alt="Snímek obrazovky z 2025-12-17 17-52-00" src="https://github.com/user-attachments/assets/299a8e08-05bd-440c-9625-1afda717434e" />
+<img width="1045" height="597" alt="Snímek obrazovky z 2025-12-17 17-50-44" src="https://github.com/user-attachments/assets/96811e3f-d8b2-4465-9729-6190b55f1ab4" />
+<img width="1045" height="597" alt="Snímek obrazovky z 2025-12-17 17-50-36" src="https://github.com/user-attachments/assets/2b358f96-5184-4f79-bba0-eee554cf2421" />
