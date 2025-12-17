@@ -14,7 +14,7 @@
 using namespace std;
 
 
-static glm::vec3 bezierCubic(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, float t) {
+static glm::vec3 bezierCubic(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, float t) { // implementace výpočtu bezierovy kubiky
     float mt = 1.0f - t;
     float b0 = mt * mt * mt;
     float b1 = 3.0f * mt * mt * t;
@@ -22,6 +22,7 @@ static glm::vec3 bezierCubic(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3
     float b3 = t * t * t;
     return b0 * p0 + b1 * p1 + b2 * p2 + b3 * p3;
 }
+
 Scene::Scene() : activeSceneIndex(0) {}
 
 void Scene::addScene(const vector<shared_ptr<DrawableObject>>& sceneObjects) {
@@ -262,12 +263,12 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
             const float plainStart = formula.startPos.x;
             const float plainEnd = formula.endPos.x;
             const float plainWidth = plainEnd - plainStart;
-            glm::vec3 p0(plainStart, planeY, formula.startPos.z);
+            glm::vec3 p0(plainStart, planeY, formula.startPos.z); // ridici body
             glm::vec3 p1(plainStart + plainWidth * 0.33f, planeY, formula.startPos.z + 3.0f);
             glm::vec3 p2(plainStart + plainWidth * 0.66f, planeY, formula.startPos.z - 3.0f);
             glm::vec3 p3(plainEnd, planeY, formula.startPos.z);
             
-            glm::vec3 currentPos = bezierCubic(p0, p1, p2, p3, t);
+            glm::vec3 currentPos = bezierCubic(p0, p1, p2, p3, t); // Bezier calculation
             
             auto t_trans = make_shared<Transformation>();
             t_trans->add(make_shared<Translate>(currentPos));
@@ -769,7 +770,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene5(shared_ptr<ProgramSha
 
     for (const auto &pos : lightBasePositions) {
         Light pl(pos, glm::vec3(1.0f, 0.9f, 0.7f), 0.9f);
-        pl.setAttenuation(1.0f, 0.60f, 0.90f);
+        pl.setAttenuation(1.0f, 0.60f, 0.90f);           // utlum světlušek constant, linear quadratic
         pointLights.push_back(pl);
     }
 

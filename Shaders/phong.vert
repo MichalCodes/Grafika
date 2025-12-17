@@ -8,7 +8,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 uMVP;
-uniform float w = 1.0;
+uniform float w = 1.0; // Homogenní složka
 
 out vec3 worldPos;
 out vec3 worldNormal;

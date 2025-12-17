@@ -15,8 +15,7 @@ void main() {
 
     vec3 finalColor = hasTexture ? textureResult : objectColor;
 
-    float intensity = 1.0 - length(gl_PointCoord - vec2(0.5)) * 0.5;
-    intensity = clamp(intensity, 0.0, 1.0);
+    float intensity = 2;
     
     FragColor = vec4(finalColor * intensity, 1.0);
 }

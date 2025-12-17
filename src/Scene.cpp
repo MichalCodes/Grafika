@@ -14,14 +14,15 @@
 using namespace std;
 
 
-static glm::vec3 bezierCubic(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, float t) {
-    float mt = 1.0f - t;
+static glm::vec3 bezierCubic(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, float t) { // implementace výpočtu bezierovy kubiky
+    float mt = 1.0f - t; // koeficient
     float b0 = mt * mt * mt;
-    float b1 = 3.0f * mt * mt * t;
+    float b1 = 3.0f * mt * mt * t; // bernsteinovy polynomy
     float b2 = 3.0f * mt * t * t;
     float b3 = t * t * t;
     return b0 * p0 + b1 * p1 + b2 * p2 + b3 * p3;
 }
+
 Scene::Scene() : activeSceneIndex(0) {}
 
 void Scene::addScene(const vector<shared_ptr<DrawableObject>>& sceneObjects) {
@@ -192,7 +193,7 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
     lastUpdateTime = time;
     if (deltaTime < 0.0f || deltaTime > 1.0f) deltaTime = 0.016f;
     
-    if (activeSceneIndex == 0 && triangleObject) {
+    if (activeSceneIndex == 6 && triangleObject) {
         auto composite = make_shared<Transformation>();
         composite->add(make_shared<Translate>(glm::vec3(0.0f, -0.2f, 0.0f)));
         composite->add(make_shared<Rotate>(time, glm::vec3(0.0f, 0.0f, 1.0f)));
@@ -262,12 +263,12 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
             const float plainStart = formula.startPos.x;
             const float plainEnd = formula.endPos.x;
             const float plainWidth = plainEnd - plainStart;
-            glm::vec3 p0(plainStart, planeY, formula.startPos.z);
+            glm::vec3 p0(plainStart, planeY, formula.startPos.z); // ridici body
             glm::vec3 p1(plainStart + plainWidth * 0.33f, planeY, formula.startPos.z + 3.0f);
             glm::vec3 p2(plainStart + plainWidth * 0.66f, planeY, formula.startPos.z - 3.0f);
             glm::vec3 p3(plainEnd, planeY, formula.startPos.z);
             
-            glm::vec3 currentPos = bezierCubic(p0, p1, p2, p3, t);
+            glm::vec3 currentPos = bezierCubic(p0, p1, p2, p3, t); // Bezier calculation
             
             auto t_trans = make_shared<Transformation>();
             t_trans->add(make_shared<Translate>(currentPos));
@@ -289,7 +290,7 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
             solarSun->setTransformation(tSun);
         }
 
-        struct PlanetOrbit {
+        struct PlanetOrbit { // tady menit orbity planet
             shared_ptr<DrawableObject> planet;
             float radius;
             float speed;
@@ -391,7 +392,7 @@ void Scene::update(float time, shared_ptr<ProgramShader> shader, shared_ptr<Came
                 forestShader->setUniform(idx + ".color", pl.getColor() * pl.getIntensity());
                 forestShader->setUniform(idx + ".constant", pl.getConstant());
                 forestShader->setUniform(idx + ".linear", pl.getLinear());
-                forestShader->setUniform(idx + ".quadratic", pl.getQuadratic());
+                forestShader->setUniform(idx + ".quadratic", pl.getQuadratic()); // nastavuju utlumení
             }
         } else {
             if (fireflies.empty()) {
@@ -608,8 +609,8 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene4(shared_ptr<ProgramSha
             float y  = sphere[i*6 + 1];
             float z  = sphere[i*6 + 2];
 
-            float v = acos(y) / M_PI;
-            float u = 0.5f + atan2(z, x) / (2.0f * M_PI);
+            float v = acos(y) / M_PI; // vertikální UV
+            float u = 0.5f + atan2(z, x) / (2.0f * M_PI); // horizontalni UV
             
             u_coords[i] = u;
             v_coords[i] = v;
@@ -699,7 +700,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene4(shared_ptr<ProgramSha
     shader->use(); 
 
     auto earth   = makePlanet("earth",   4.0f, 0.35f, glm::vec3(0.2f, 0.3f, 1.0f));
-    auto mars    = makePlanet("mars",    5.0f, 0.25f, glm::vec3(1.0f, 0.3f, 0.1f), true);
+    auto mars    = makePlanet("mars",    5.0f, 0.55f, glm::vec3(1.0f, 0.3f, 0.1f), true);
     auto jupiter = makePlanet("jupiter", 7.0f, 1.20f, glm::vec3(1.0f, 0.8f, 0.5f));
     auto saturn  = makePlanet("saturn", 10.0f, 0.95f, glm::vec3(0.9f, 0.8f, 0.6f));
     auto uranus  = makePlanet("uranus", 13.0f, 1.00f, glm::vec3(0.6f, 0.8f, 1.0f));
@@ -769,7 +770,7 @@ vector<shared_ptr<DrawableObject>> Scene::initializeScene5(shared_ptr<ProgramSha
 
     for (const auto &pos : lightBasePositions) {
         Light pl(pos, glm::vec3(1.0f, 0.9f, 0.7f), 0.9f);
-        pl.setAttenuation(1.0f, 0.60f, 0.90f);
+        pl.setAttenuation(1.0f, 0.60f, 0.90f);           // utlum světlušek constant, linear quadratic
         pointLights.push_back(pl);
     }
 
